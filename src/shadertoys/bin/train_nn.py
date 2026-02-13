@@ -2,6 +2,10 @@
 """Train a tiny neural network to compress Bad Apple video."""
 
 import json
+from argparse import ArgumentParser
+from collections.abc import Sequence
+from pathlib import Path
+from typing import Optional
 
 import numpy as np
 import polars as pl
@@ -15,7 +19,14 @@ from tqdm import tqdm
 class VideoDataset(Dataset):
     """Dataset for video pixels."""
 
-    def __init__(self, df, width, height, total_frames, sample_rate=1.0):
+    def __init__(
+        self,
+        df: pl.DataFrame,
+        width: int,
+        height: int,
+        total_frames: int,
+        sample_rate: float = 1.0,
+    ):
         """
         Args:
             df: Polars DataFrame with pixel data
@@ -50,10 +61,10 @@ class VideoDataset(Dataset):
             f"Dataset: {len(self.frames):,} pixels ({sample_rate * 100:.1f}% of total)"
         )
 
-    def __len__(self):
+    def __len__(self) -> int:
         return len(self.frames)
 
-    def __getitem__(self, idx):
+    def __getitem__(self, idx) -> tuple[torch.Tensor, torch.Tensor]:
         # Input: (frame_normalized, x_normalized, y_normalized)
         x = torch.tensor(
             [self.frames[idx], self.xs[idx], self.ys[idx]], dtype=torch.float32
@@ -66,7 +77,7 @@ class VideoDataset(Dataset):
 class TinyVideoNet(nn.Module):
     """Tiny neural network for video compression."""
 
-    def __init__(self, hidden_sizes=[32, 64, 32]):
+    def __init__(self, hidden_sizes: list[int] = [32, 64, 32]):
         """
         Args:
             hidden_sizes: List of hidden layer sizes
@@ -88,14 +99,20 @@ class TinyVideoNet(nn.Module):
         self.network = nn.Sequential(*layers)
         self.hidden_sizes = hidden_sizes
 
-    def forward(self, x):
+    def forward(self, x) -> torch.Tensor:
         return self.network(x)
 
-    def count_parameters(self):
+    def count_parameters(self) -> int:
         return sum(p.numel() for p in self.parameters())
 
 
-def train_model(model, train_loader, epochs=10, lr=0.001, device="cpu"):
+def train_model(
+    model: nn.Module,
+    train_loader: DataLoader,
+    epochs: int = 10,
+    lr: float = 0.001,
+    device: str = "cpu",
+) -> nn.Module:
     """Train the neural network."""
     model = model.to(device)
     criterion = nn.MSELoss()
@@ -132,7 +149,7 @@ def train_model(model, train_loader, epochs=10, lr=0.001, device="cpu"):
     return model
 
 
-def save_model_weights(model, output_path="bad_apple/nn_weights.json"):
+def save_model_weights(model: nn.Module, output_path: Path):
     """Save model weights as JSON for easy shader integration."""
     weights_dict = {}
 
@@ -147,7 +164,7 @@ def save_model_weights(model, output_path="bad_apple/nn_weights.json"):
     print(f"\nWeights saved to: {output_path}")
 
     # Also save as numpy for texture encoding
-    numpy_path = output_path.replace(".json", ".npz")
+    numpy_path = output_path.with_suffix(".npz")
     np.savez(numpy_path, **{k: np.array(v) for k, v in weights_dict.items()})
     print(f"Weights saved to: {numpy_path}")
 
@@ -161,8 +178,14 @@ def save_model_weights(model, output_path="bad_apple/nn_weights.json"):
 
 
 def evaluate_model(
-    model, df, width, height, total_frames, device="cpu", num_samples=10000
-):
+    model: nn.Module,
+    df: pl.DataFrame,
+    width: int,
+    height: int,
+    total_frames: int,
+    device: str = "cpu",
+    num_samples: int = 10000,
+) -> None:
     """Evaluate model on random samples."""
     model.eval()
     model = model.to(device)
@@ -199,11 +222,30 @@ def evaluate_model(
     print(f"Avg pixel error: {mae * 255:.2f} / 255")
 
 
-def main():
+def main(argv: Optional[Sequence[str]] = None):
+    parser = ArgumentParser(
+        description="Train a tiny neural network to compress video."
+    )
+    parser.add_argument(
+        "-i",
+        "--input",
+        type=Path,
+        default=Path("video_pixels.parquet"),
+        help="Path to input parquet file with video pixel data",
+    )
+    parser.add_argument(
+        "-o",
+        "--output",
+        type=Path,
+        default=Path("nn_weights.json"),
+        help="Path to output JSON file for model weights",
+    )
+    args = parser.parse_args(argv)
+
     """Main training pipeline."""
     # Load video data
     print("Loading video data...")
-    df = pl.read_parquet("bad_apple/video_pixels.parquet")
+    df = pl.read_parquet(args.input)
 
     # Get video dimensions
     width = df.select(pl.col("x").max()).item() + 1
@@ -254,7 +296,9 @@ def main():
         evaluate_model(model, df, width, height, total_frames, device=device)
 
         # Save weights
-        output_path = f"bad_apple/nn_weights_{config['name'].lower()}.json"
+        output_path = args.output.with_name(
+            f"{args.output.stem}_{config['name'].lower()}{args.output.suffix}"
+        )
         weights = save_model_weights(model, output_path)
 
         # Save model metadata
@@ -266,11 +310,9 @@ def main():
             "height": height,
             "total_frames": total_frames,
         }
-        metadata_path = output_path.replace(".json", "_metadata.json")
+        metadata_path = output_path.with_name(
+            f"{args.output.stem}_{config['name'].lower()}_metadata{args.output.suffix}"
+        )
         with open(metadata_path, "w") as f:
             json.dump(metadata, f, indent=2)
         print(f"Metadata saved to: {metadata_path}")
-
-
-if __name__ == "__main__":
-    main()
