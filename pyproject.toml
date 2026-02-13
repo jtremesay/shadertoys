@@ -5,10 +5,16 @@ description = "Bad Apple video compression using tiny neural network for Shadert
 readme = "README.md"
 requires-python = ">=3.13"
 dependencies = [
-    "marimo>=0.19.11",
     "opencv-python-headless>=4.13.0.92",
     "polars>=1.38.1",
     "tqdm>=4.67.3",
     "torch>=2.5.0",
     "numpy>=2.0.0",
 ]
+
+[project.scripts]
+shadertoys_extract_pixels = "shadertoys.bin.extract_pixels:main"
+
+[build-system]
+requires = ["uv_build>=0.10.2,<0.11.0"]
+build-backend = "uv_build"

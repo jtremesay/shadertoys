@@ -1,4 +1,3 @@
-#!/usr/bin/env python3
 from argparse import ArgumentParser
 from collections.abc import Sequence
 from pathlib import Path
@@ -90,7 +89,3 @@ def main(argv: Optional[Sequence[str]] = None) -> None:
 
     df = extract_pixels_from_capture(capture)
     df.write_parquet(output_file)
-
-
-if __name__ == "__main__":
-    main()
