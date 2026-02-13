@@ -9,5 +9,6 @@ wheels/
 # Virtual environments
 .venv
 
-# Videos
+# Videos and other generated data
 /bad_apple/video.webm
+*.parquet
