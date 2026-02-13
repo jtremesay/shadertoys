@@ -17,25 +17,6 @@ def load_weights(weights_path):
     return weights
 
 
-def weights_to_glsl_array(weights, name="WEIGHTS", max_per_line=8):
-    """Convert numpy array to GLSL float array declaration."""
-    flat = weights.flatten()
-    total = len(flat)
-
-    lines = [f"const float {name}[{total}] = float[{total}]("]
-
-    for i in range(0, total, max_per_line):
-        chunk = flat[i : i + max_per_line]
-        values = ", ".join(f"{v:.8f}" for v in chunk)
-        if i + max_per_line < total:
-            lines.append(f"    {values},")
-        else:
-            lines.append(f"    {values}")
-
-    lines.append(");")
-    return "\n".join(lines)
-
-
 def generate_buffer_a(weights_dict, metadata):
     """Generate Buffer A shader that encodes weights as a texture."""
 
@@ -59,46 +40,17 @@ def generate_buffer_a(weights_dict, metadata):
     total_weights = len(all_weights)
     print(f"Total weights: {total_weights:,}")
 
-    # Generate GLSL array
-    weights_array = weights_to_glsl_array(np.array(all_weights), "NN_WEIGHTS")
-
     # Calculate texture size needed
     values_per_pixel = 4  # RGBA
     num_pixels = (total_weights + values_per_pixel - 1) // values_per_pixel
     tex_size = int(np.ceil(np.sqrt(num_pixels)))
 
-    shader_code = f"""// Bad Apple NN - Buffer A: Weight Storage
-// This buffer stores the neural network weights as a texture
-
-const int TOTAL_WEIGHTS = {total_weights};
-const int TEXTURE_SIZE = {tex_size};
-
-// Neural network weights (embedded directly in code)
-{weights_array}
-
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {{
-    // Convert pixel coordinate to linear weight index
-    int px = int(fragCoord.x);
-    int py = int(fragCoord.y);
-    int pixel_idx = py * TEXTURE_SIZE + px;
-    int weight_idx = pixel_idx * 4;
-    
-    // Pack 4 weights per pixel (RGBA)
-    vec4 packed = vec4(0.0);
-    for (int i = 0; i < 4; i++) {{
-        int idx = weight_idx + i;
-        if (idx < TOTAL_WEIGHTS) {{
-            // Normalize to [0, 1] for storage
-            // Assuming weights are roughly in [-1, 1] range
-            packed[i] = NN_WEIGHTS[idx] * 0.5 + 0.5;
-        }}
-    }}
-    
-    fragColor = packed;
-}}
-"""
-
-    return shader_code, offsets, tex_size
+    tpl = env.get_template("buffer_a.fs")
+    return (
+        tpl.render(total_weights=total_weights, tex_size=tex_size, weights=all_weights),
+        offsets,
+        tex_size,
+    )
 
 
 def generate_image_shader(metadata, offsets, tex_size):

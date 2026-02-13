@@ -1,11 +1,14 @@
 // Bad Apple NN - Buffer A: Weight Storage
 // This buffer stores the neural network weights as a texture
 
-const int TOTAL_WEIGHTS = {{ TOTAL_WEIGHTS }};
-const int TEXTURE_SIZE = 33;
+const int TOTAL_WEIGHTS = {{ total_weights }};
+const int TEXTURE_SIZE = {{ tex_size }};
 
 // Neural network weights (embedded directly in code)
-const float NN_WEIGHTS[{{ TOTAL_WEIGHTS }}] = float[{{ TOTAL_WEIGHTS }}](
+const float NN_WEIGHTS[{{ total_weights }}] = float[{{ total_weights }}](
+{%- for w in weights %}
+    {{ w }}{% if not loop.last %},{% endif %}
+{%- endfor %}
 );
 
 void mainImage(out vec4 fragColor, in vec2 fragCoord) {
