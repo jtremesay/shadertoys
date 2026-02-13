@@ -377,6 +377,7 @@ name = "shadertoys"
 version = "0.1.0"
 source = { editable = "." }
 dependencies = [
+    { name = "jinja2" },
     { name = "numpy" },
     { name = "opencv-python-headless" },
     { name = "polars" },
@@ -386,6 +387,7 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
+    { name = "jinja2", specifier = ">=3.1.6" },
     { name = "numpy", specifier = ">=2.0.0" },
     { name = "opencv-python-headless", specifier = ">=4.13.0.92" },
     { name = "polars", specifier = ">=1.38.1" },

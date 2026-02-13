@@ -10,12 +10,14 @@ dependencies = [
     "tqdm>=4.67.3",
     "torch>=2.5.0",
     "numpy>=2.0.0",
+    "jinja2>=3.1.6",
 ]
 
 [project.scripts]
 shadertoys_analyze_video = "shadertoys.bin.analyze_video:main"
 shadertoys_extract_pixels = "shadertoys.bin.extract_pixels:main"
 shadertoys_train_nn = "shadertoys.bin.train_nn:main"
+shadertoys_generate_shaders = "shadertoys.bin.generate_shaders:main"
 
 [build-system]
 requires = ["uv_build>=0.10.2,<0.11.0"]

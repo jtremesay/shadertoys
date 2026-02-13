@@ -12,11 +12,11 @@ wheels/
 # Videos and data files
 video.webm
 video_pixels.parquet
-
-# Generated model files
-*.npz
-*_metadata.json
+nn_weights_*_metadata.json
 nn_weights_*.json
+nn_weights_*.npz
+shadertoy_buffer_a.fs
+shadertoy_image.fs
 
 # Marimo state
 *.marimo.py.state
