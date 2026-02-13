@@ -18,10 +18,21 @@ uv sync
 pip install -e .
 ```
 
-### 2. Entraîner le réseau de neurones
+### 2. Extraire les pixels de la vidéo
 
 ```bash
-python3 bad_apple/train_nn.py
+cd bad_apple
+shadertoys_extract_pixels
+```
+
+**Sortie** :
+- `bad_apple/video_pixels.parquet` - Pixels extraits (1.08 GB)
+
+### 3. Entraîner le réseau de neurones
+
+```bash
+cd bad_apple
+shadertoys_train_nn
 ```
 
 **Durée** : 
@@ -29,19 +40,20 @@ python3 bad_apple/train_nn.py
 - GPU: ~10-15 minutes
 
 **Sortie** :
-- `bad_apple/nn_weights_tiny.npz` - Poids du réseau
-- `bad_apple/nn_weights_tiny_metadata.json` - Métadonnées
+- `nn_weights_tiny.json` - Poids du réseau au format JSON
+- `nn_weights_tiny.npz` - Poids du réseau au format NumPy
+- `nn_weights_tiny_metadata.json` - Métadonnées (architecture, dimensions)
 
-### 3. Générer le shader Shadertoy
+### 4. Générer les shaders Shadertoy
 
 ```bash
-python3 generate_shadertoy_multipass.py bad_apple/nn_weights_tiny.npz
+cd bad_apple
+shadertoys_generate_shaders
 ```
 
 **Sortie** :
-- `bad_apple/shadertoy_buffer_a.glsl` - Buffer A (stockage des poids)
-- `bad_apple/shadertoy_image.glsl` - Image (inférence NN)
-- `bad_apple/SHADERTOY_SETUP.md` - Instructions détaillées
+- `shadertoy_buffer_a.glsl` - Buffer A (stockage des poids)
+- `shadertoy_image.glsl` - Image (inférence NN)
 
 ### 4. Upload sur Shadertoy
 
@@ -66,17 +78,29 @@ python3 generate_shadertoy_multipass.py bad_apple/nn_weights_tiny.npz
 
 ```
 shadertoys/
+├── src/
+│   └── shadertoys/
+│       ├── __init__.py
+│       ├── nn.py                       # Architecture du réseau de neurones
+│       ├── video.py                    # Extraction de pixels depuis vidéo
+│       ├── bin/
+│       │   ├── __init__.py
+│       │   ├── extract_pixels.py       # CLI: extraction pixels → Parquet
+│       │   ├── train_nn.py             # CLI: entraînement NN
+│       │   └── generate_shaders.py     # CLI: génération shaders GLSL
+│       └── templates/
+│           ├── buffer_a.fs             # Template shader Buffer A
+│           └── image.fs                # Template shader Image
 ├── bad_apple/
+│   ├── dl_video.sh                     # Script de téléchargement vidéo
 │   ├── video.webm                      # Vidéo source (480×360, 6572 frames)
-│   ├── video_pixels.parquet            # Pixels extraits (1.08 GB)
-│   ├── train_nn.py                     # Entraînement NN Tiny
-│   ├── nn_weights_tiny.npz             # Poids entraînés (généré)
+│   ├── video_pixels.parquet            # Pixels extraits (généré, 1.08 GB)
+│   ├── nn_weights.json                 # Poids JSON (généré)
+│   ├── nn_weights.npz                  # Poids NumPy (généré)
+│   ├── nn_weights_metadata.json        # Métadonnées (généré)
 │   ├── shadertoy_buffer_a.glsl         # Shader Buffer A (généré)
-│   ├── shadertoy_image.glsl            # Shader Image (généré)
-│   └── SHADERTOY_SETUP.md              # Instructions (généré)
-├── generate_shadertoy_multipass.py     # Générateur shader multi-pass
-├── extract_pixels.py                   # Extraction pixels → Parquet
-├── pyproject.toml                      # Dépendances
+│   └── shadertoy_image.glsl            # Shader Image (généré)
+├── pyproject.toml                      # Configuration du projet, dépendances
 └── README.md                           # Ce fichier
 ```
 
@@ -95,6 +119,14 @@ shadertoys/
 - Epochs : 30
 - Loss : MSE
 - Optimizer : Adam (lr=0.001)
+
+## 🛠️ Console Scripts
+
+Le projet installe trois commandes CLI :
+
+- **`shadertoys_extract_pixels`** : Extrait les pixels d'une vidéo vers Parquet
+- **`shadertoys_train_nn`** : Entraîne le réseau de neurones
+- **`shadertoys_generate_shaders`** : Génère les shaders GLSL pour Shadertoy
 
 ## 📊 Résultats attendus
 
