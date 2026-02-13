@@ -9,6 +9,30 @@ wheels/
 # Virtual environments
 .venv
 
-# Videos and other generated data
+# Videos and data files
 /bad_apple/video.webm
 *.parquet
+
+# Generated model files
+bad_apple/*.npz
+bad_apple/*_metadata.json
+bad_apple/nn_weights_*.json
+
+# Generated shader files
+bad_apple/shadertoy_*.glsl
+bad_apple/SHADERTOY_SETUP.md
+bad_apple/*.png
+
+# Marimo state
+*.marimo.py.state
+
+# IDEs
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
