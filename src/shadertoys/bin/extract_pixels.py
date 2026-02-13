@@ -74,8 +74,10 @@ def extract_pixels_from_capture(capture: VideoCapture) -> pl.DataFrame:
 
 def main(argv: Optional[Sequence[str]] = None) -> None:
     parser = ArgumentParser()
+    parser.add_argument(
+        "-i", "--input", default="video.webm", type=Path, help="input file"
+    )
     parser.add_argument("-o", "--output", type=Path, help="output file")
-    parser.add_argument("input", type=Path, help="input file")
 
     args = parser.parse_args(argv)
     input_file = args.input
