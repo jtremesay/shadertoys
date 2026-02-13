@@ -1,15 +1,18 @@
 #!/usr/bin/env python3
 """Analyze Bad Apple video metadata from parquet file."""
 
-import os
+from argparse import ArgumentParser
+from collections.abc import Sequence
+from pathlib import Path
+from typing import Optional
 
 import polars as pl
 
 
-def analyze_video():
+def analyze_video(parquet_path: Path):
     """Analyze Bad Apple video metadata and compression feasibility."""
     # Read the parquet file
-    df = pl.read_parquet("bad_apple/video_pixels.parquet")
+    df = pl.read_parquet(parquet_path)
 
     print("=" * 80)
     print("BAD APPLE VIDEO METADATA ANALYSIS")
@@ -60,7 +63,7 @@ def analyze_video():
 
     # For shader code analysis
     print("\n   B. Parquet File (on disk):")
-    parquet_size = os.path.getsize("bad_apple/video_pixels.parquet")
+    parquet_size = parquet_path.stat().st_size
     print(
         f"      Compressed size: {parquet_size:,} bytes = {parquet_size / (1024**2):.2f} MB"
     )
@@ -159,6 +162,15 @@ def analyze_video():
     }
 
 
-if __name__ == "__main__":
-    metadata = analyze_video()
-    print(f"\nMetadata: {metadata}")
+def main(argv: Optional[Sequence[str]] = None):
+    parser = ArgumentParser(description="Analyze video metadata")
+    parser.add_argument(
+        "-i",
+        "--input",
+        type=Path,
+        default="video_pixels.parquet",
+        help="Path to input parquet file",
+    )
+    args = parser.parse_args(argv)
+
+    analyze_video(args.input)

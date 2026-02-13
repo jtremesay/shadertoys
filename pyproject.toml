@@ -13,6 +13,7 @@ dependencies = [
 ]
 
 [project.scripts]
+shadertoys_analyze_video = "shadertoys.bin.analyze_video:main"
 shadertoys_extract_pixels = "shadertoys.bin.extract_pixels:main"
 
 [build-system]
