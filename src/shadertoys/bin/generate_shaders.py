@@ -90,114 +90,15 @@ def generate_image_shader(metadata, offsets, tex_size):
         }
     )
 
-    shader_code = f"""// Bad Apple NN - Image: Neural Network Inference
-// Reads weights from Buffer A (iChannel0) and performs forward pass
-
-const int VIDEO_WIDTH = {width};
-const int VIDEO_HEIGHT = {height};
-const int TOTAL_FRAMES = {total_frames};
-const int TEXTURE_SIZE = {tex_size};
-
-// Read weight from Buffer A texture
-float readWeight(int index) {{
-    int pixel_idx = index / 4;
-    int channel = index % 4;
-    
-    int tex_y = pixel_idx / TEXTURE_SIZE;
-    int tex_x = pixel_idx % TEXTURE_SIZE;
-    
-    vec2 uv = (vec2(tex_x, tex_y) + 0.5) / float(TEXTURE_SIZE);
-    vec4 pixel = texelFetch(iChannel0, ivec2(tex_x, tex_y), 0);
-    
-    // Denormalize from [0, 1] to [-1, 1]
-    float value = pixel[channel] * 2.0 - 1.0;
-    return value;
-}}
-
-// Activation functions
-float relu(float x) {{
-    return max(0.0, x);
-}}
-
-float sigmoid(float x) {{
-    return 1.0 / (1.0 + exp(-x));
-}}
-
-// Neural network forward pass
-float neuralNetwork(vec3 input) {{
-    // Architecture: {hidden_sizes} -> 1
-    
-    int offset = 0;
-"""
-
-    # Generate forward pass code for each layer
-    prev_layer_var = "input"
-    prev_layer_size = 3
-
-    for i, layer in enumerate(layer_info[:-1]):  # All hidden layers
-        next_size = layer["output"]
-        layer_var = f"hidden{i + 1}"
-
-        shader_code += f"""
-    // Layer {i}: [{layer["input"]}] -> [{layer["output"]}]
-    float {layer_var}[{next_size}];
-    for (int i = 0; i < {next_size}; i++) {{
-        float sum = 0.0;
-        for (int j = 0; j < {layer["input"]}; j++) {{
-            sum += {prev_layer_var}[j] * readWeight(offset + i * {layer["input"]} + j);
-        }}
-        sum += readWeight(offset + {layer["weight_size"]} + i);
-        {layer_var}[i] = relu(sum);
-    }}
-    offset += {layer["weight_size"] + layer["bias_size"]};
-"""
-        prev_layer_var = layer_var
-        prev_layer_size = next_size
-
-    # Final layer
-    final_layer = layer_info[-1]
-    shader_code += f"""
-    // Output layer: [{final_layer["input"]}] -> [1]
-    float output = 0.0;
-    for (int i = 0; i < {final_layer["input"]}; i++) {{
-        output += {prev_layer_var}[i] * readWeight(offset + i);
-    }}
-    output += readWeight(offset + {final_layer["weight_size"]});
-    output = sigmoid(output);
-    
-    return output;
-}}
-
-void mainImage(out vec4 fragColor, in vec2 fragCoord) {{
-    // Calculate current frame based on time (30 fps)
-    int frame = int(iTime * 30.0) % TOTAL_FRAMES;
-    
-    // Get pixel coordinates
-    vec2 uv = fragCoord / iResolution.xy;
-    int px = int(uv.x * float(VIDEO_WIDTH));
-    int py = int((1.0 - uv.y) * float(VIDEO_HEIGHT));
-    
-    // Boundary check
-    if (px >= VIDEO_WIDTH || py >= VIDEO_HEIGHT) {{
-        fragColor = vec4(0.0);
-        return;
-    }}
-    
-    // Normalize inputs to [0, 1]
-    float frame_norm = float(frame) / float(TOTAL_FRAMES);
-    float x_norm = float(px) / float(VIDEO_WIDTH);
-    float y_norm = float(py) / float(VIDEO_HEIGHT);
-    
-    vec3 input = vec3(frame_norm, x_norm, y_norm);
-    
-    // Run neural network
-    float gray = neuralNetwork(input);
-    
-    fragColor = vec4(vec3(gray), 1.0);
-}}
-"""
-
-    return shader_code
+    tpl = env.get_template("image.fs")
+    return tpl.render(
+        width=width,
+        height=height,
+        total_frames=total_frames,
+        tex_size=tex_size,
+        hidden_sizes=hidden_sizes,
+        layer_info=layer_info,
+    )
 
 
 def generate_multipass_shader(weights_path: Path, output_dir: Path):
