@@ -1,5 +1,7 @@
 # Bad Apple sur Shadertoy - Guide Complet
 
+(Projet tout ou partiellemenet vibe codé. J'étais curieux de voir si il était possible de "compresser" une vidéo en utilisant uniquement un réseau de neurones dans un shader, mais j'avais la flemme de le faire moi-même.)
+
 Projet de compression vidéo procédurale pour [Shadertoy.com](https://www.shadertoy.com) utilisant un **réseau de neurones Tiny** embarqué directement dans le code GLSL (pas de texture custom).
 
 ## 🎯 Concept

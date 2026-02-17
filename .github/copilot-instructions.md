@@ -1,4 +1,4 @@
-# Shadertoys Project - AI Agent Instructions
+# Shadertools Project - AI Agent Instructions
 
 ## Project Overview
 
@@ -29,13 +29,13 @@ Multi-pass shader (Buffer A stores weights, Image runs NN inference)
 
 ## Key Components
 
-### 1. Video Extraction (`src/shadertoys/video.py`)
+### 1. Video Extraction (`src/shadertools/video.py`)
 - Uses OpenCV to read video frames
 - Converts to grayscale, extracts all pixels
 - Pre-allocates NumPy arrays for vectorized operations (fast!)
 - Outputs Polars DataFrame with columns: `frame`, `x`, `y`, `pixel_value`
 
-### 2. Neural Network (`src/shadertoys/nn.py`)
+### 2. Neural Network (`src/shadertools/nn.py`)
 
 **TinyVideoNet Architecture**: `[3] → [32] → [64] → [32] → [1]`
 - Input: `(frame_norm, x_norm, y_norm)` normalized to [0, 1]
@@ -51,9 +51,9 @@ self.ys /= height
 self.pixels /= 255.0  # Grayscale normalization
 ```
 
-### 3. GLSL Generation (`src/shadertoys/bin/generate_shaders.py`)
+### 3. GLSL Generation (`src/shadertools/bin/generate_shaders.py`)
 
-**Jinja2 Templates** (`src/shadertoys/templates/`):
+**Jinja2 Templates** (`src/shadertools/templates/`):
 - `buffer_a.fs`: Embeds weights as `const float NN_WEIGHTS[N]`, packs 4 per RGBA pixel
 - `image.fs`: Reads weights via `texelFetch()`, implements NN forward pass
 
@@ -72,14 +72,14 @@ self.pixels /= 255.0  # Grayscale normalization
 
 Install with `uv sync` or `pip install -e .` to get:
 
-1. **`shadertoys_extract_pixels`** → `src/shadertoys/bin/extract_pixels.py`
+1. **`shadertools_extract_pixels`** → `src/shadertools/bin/extract_pixels.py`
    - Default: `-i video.webm -o video_pixels.parquet`
    
-2. **`shadertoys_train_nn`** → `src/shadertoys/bin/train_nn.py`
+2. **`shadertools_train_nn`** → `src/shadertools/bin/train_nn.py`
    - Default: `-i video_pixels.parquet -o nn_weights.json`
    - Outputs: `.json`, `.npz`, `_metadata.json`
    
-3. **`shadertoys_generate_shaders`** → `src/shadertoys/bin/generate_shaders.py`
+3. **`shadertools_generate_shaders`** → `src/shadertools/bin/generate_shaders.py`
    - Default: `-i nn_weights_tiny.npz`
    - Outputs: `shadertoy_buffer_a.fs`, `shadertoy_image.fs`
 
@@ -88,9 +88,9 @@ Install with `uv sync` or `pip install -e .` to get:
 ### Full Pipeline (from `bad_apple/` directory)
 ```bash
 cd bad_apple
-shadertoys_extract_pixels  # 5-10 min
-shadertoys_train_nn        # 1-2 hours CPU, 10-15 min GPU
-shadertoys_generate_shaders nn_weights_tiny.npz  # instant
+shadertools_extract_pixels  # 5-10 min
+shadertools_train_nn        # 1-2 hours CPU, 10-15 min GPU
+shadertools_generate_shaders nn_weights_tiny.npz  # instant
 ```
 
 ### Quick Testing (Reduce Training Time)
@@ -141,9 +141,9 @@ tex_size = int(np.ceil(np.sqrt(total_weights / 4)))  # 4 weights per pixel
 
 | File | Purpose |
 |------|---------|
-| `src/shadertoys/nn.py` | PyTorch model definition + training logic |
-| `src/shadertoys/video.py` | OpenCV video → Polars DataFrame |
-| `src/shadertoys/templates/*.fs` | Jinja2 templates for GLSL generation |
+| `src/shadertools/nn.py` | PyTorch model definition + training logic |
+| `src/shadertools/video.py` | OpenCV video → Polars DataFrame |
+| `src/shadertools/templates/*.fs` | Jinja2 templates for GLSL generation |
 | `bad_apple/video_pixels.parquet` | Extracted pixel data (generated) |
 | `bad_apple/nn_weights_tiny.npz` | Trained weights (generated) |
 | `bad_apple/shadertoy_*.fs` | Final GLSL shaders (generated) |

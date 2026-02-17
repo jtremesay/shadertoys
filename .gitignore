@@ -10,6 +10,7 @@ wheels/
 .venv
 
 # Videos and data files
+original.webm
 video.webm
 video_pixels.parquet
 nn_weights_*_metadata.json

@@ -35,4 +35,4 @@
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
 set -ex
 
-yt-dlp --remote-components ejs:github -f 243 'https://www.youtube.com/watch?v=FtutLA63Cp8' -o original.webm
+ffmpeg -i original.webm -ss 0:00:09 -t 1 -vf scale=60:40 -y video.webm
