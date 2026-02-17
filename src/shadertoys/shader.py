@@ -56,7 +56,18 @@ def generate_buffer_a(weights_dict, metadata):
     offsets = {}
     current_offset = 0
 
-    sorted_keys = sorted(weights_dict.keys())
+    # CRITICAL: Sort keys with custom order - weights before biases for each layer!
+    # Sorted alphabetically would put "bias" before "weight", which breaks GLSL logic
+    def layer_key_order(key):
+        # Extract layer number and type (weight vs bias)
+        # e.g., "network.0.weight" -> (0, 0) for weight first
+        # e.g., "network.0.bias" -> (0, 1) for bias second
+        parts = key.split(".")
+        layer_num = int(parts[1])
+        is_bias = 1 if parts[2] == "bias" else 0
+        return (layer_num, is_bias)
+
+    sorted_keys = sorted(weights_dict.keys(), key=layer_key_order)
     for key in sorted_keys:
         param = weights_dict[key]
         flat = param.flatten()

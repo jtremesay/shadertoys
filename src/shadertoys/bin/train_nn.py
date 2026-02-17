@@ -46,6 +46,7 @@ from shadertoys.nn import (
     TinyVideoNet,
     VideoDataset,
     evaluate_model,
+    load_checkpoint,
     save_model_weights,
     train_model,
 )
@@ -68,6 +69,19 @@ def main(argv: Optional[Sequence[str]] = None):
         type=Path,
         default=Path("nn_weights.json"),
         help="Path to output JSON file for model weights",
+    )
+    parser.add_argument(
+        "-r",
+        "--restart",
+        action="store_true",
+        help="Force restart training from scratch, ignoring existing checkpoints",
+    )
+    parser.add_argument(
+        "-e",
+        "--epochs",
+        type=int,
+        default=30,
+        help="Number of training epochs",
     )
     args = parser.parse_args(argv)
 
@@ -94,8 +108,7 @@ def main(argv: Optional[Sequence[str]] = None):
         {
             "name": "Tiny",
             "hidden": [32, 64, 32],
-            "sample_rate": 0.05,  # 5% of data for better quality
-            "epochs": 30,  # More training for better convergence
+            "sample_rate": 1,  # 5% of data for better quality
             "batch_size": 8192,
         },
     ]
@@ -116,9 +129,37 @@ def main(argv: Optional[Sequence[str]] = None):
         # Create model
         model = TinyVideoNet(hidden_sizes=config["hidden"])
 
+        # Check for existing checkpoint
+        checkpoint_path = (
+            args.output.parent
+            / f"{args.output.stem}_{config['name'].lower()}_checkpoint.pth"
+        )
+        start_epoch = 0
+        loss_history = []
+
+        if checkpoint_path.exists() and not args.restart:
+            print(f"📥 Found checkpoint: {checkpoint_path.name}")
+            optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+            start_epoch, loss_history = load_checkpoint(
+                checkpoint_path, model, optimizer, device
+            )
+            print(f"🔄 Resuming from epoch {start_epoch + 1}")
+        else:
+            if args.restart and checkpoint_path.exists():
+                print("🔥 Restarting training from scratch (--restart flag)")
+            else:
+                print("✨ Starting new training")
+
         # Train
-        model = train_model(
-            model, dataloader, epochs=config["epochs"], lr=0.001, device=device
+        model, loss_history = train_model(
+            model,
+            dataloader,
+            epochs=args.epochs,
+            lr=0.001,
+            device=device,
+            checkpoint_path=checkpoint_path,
+            start_epoch=start_epoch,
+            loss_history=loss_history,
         )
 
         # Evaluate

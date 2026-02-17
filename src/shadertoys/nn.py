@@ -140,16 +140,22 @@ def train_model(
     epochs: int = 10,
     lr: float = 0.001,
     device: str = "cpu",
-) -> nn.Module:
+    checkpoint_path: Path | None = None,
+    start_epoch: int = 0,
+    loss_history: list[float] | None = None,
+) -> tuple[nn.Module, list[float]]:
     model = model.to(device)
     criterion = nn.MSELoss()
     optimizer = optim.Adam(model.parameters(), lr=lr)
 
+    if loss_history is None:
+        loss_history = []
+
     print(f"\nTraining on {device}...")
     print(f"Parameters: {model.count_parameters():,}")
-    print(f"Epochs: {epochs}, Learning rate: {lr}")
+    print(f"Epochs: {start_epoch + 1} → {epochs}, Learning rate: {lr}")
 
-    for epoch in range(epochs):
+    for epoch in range(start_epoch, epochs):
         model.train()
         total_loss = 0
 
@@ -171,9 +177,14 @@ def train_model(
             pbar.set_postfix({"loss": f"{loss.item():.6f}"})
 
         avg_loss = total_loss / len(train_loader)
-        print(f"Epoch {epoch + 1}/{epochs} - Average Loss: {avg_loss:.6f}")
+        loss_history.append(avg_loss)
+        print(f"Epoch {epoch + 1}/{epochs} - Loss: {avg_loss:.6f} - Checkpoint saved ✓")
 
-    return model
+        # Save checkpoint after each epoch
+        if checkpoint_path:
+            save_checkpoint(model, optimizer, epoch, loss_history, checkpoint_path)
+
+    return model, loss_history
 
 
 def save_model_weights(model: nn.Module, output_path: Path):
@@ -202,6 +213,38 @@ def save_model_weights(model: nn.Module, output_path: Path):
     print(f"Size: {size_bytes:,} bytes = {size_bytes / 1024:.2f} KB")
 
     return weights_dict
+
+
+def save_checkpoint(
+    model: nn.Module,
+    optimizer: optim.Optimizer,
+    epoch: int,
+    loss_history: list[float],
+    checkpoint_path: Path,
+) -> None:
+    """Save training checkpoint."""
+    checkpoint = {
+        "model_state_dict": model.state_dict(),
+        "optimizer_state_dict": optimizer.state_dict(),
+        "epoch": epoch,
+        "loss_history": loss_history,
+    }
+    torch.save(checkpoint, checkpoint_path)
+
+
+def load_checkpoint(
+    checkpoint_path: Path,
+    model: nn.Module,
+    optimizer: optim.Optimizer,
+    device: str = "cpu",
+) -> tuple[int, list[float]]:
+    """Load training checkpoint."""
+    checkpoint = torch.load(checkpoint_path, map_location=device)
+    model.load_state_dict(checkpoint["model_state_dict"])
+    optimizer.load_state_dict(checkpoint["optimizer_state_dict"])
+    epoch = checkpoint["epoch"]
+    loss_history = checkpoint["loss_history"]
+    return epoch + 1, loss_history  # +1 to start at next epoch
 
 
 def evaluate_model(
