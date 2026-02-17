@@ -1,4 +1,3 @@
-#!/bin/sh
 # ANTI-CAPITALIST SOFTWARE LICENSE (v 1.4)
 #
 # Copyright © 2026 Jonathan Tremesayques
@@ -33,6 +32,49 @@
 # LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-set -ex
 
-yt-dlp --remote-components ejs:github -f 243 'https://www.youtube.com/watch?v=FtutLA63Cp8' -o original.webm
+YT_URL = 'https://www.youtube.com/watch?v=FtutLA63Cp8'
+YT_FORMAT = 243
+FFMPEG_SCALE = 60:40
+FFMPEG_START = 0:00:00
+FFMPEG_DURATION = 14
+NN_EPOCHS = 1000
+
+all: gen-shader
+.PHONY: all
+
+dl-video: original.webm
+.PHONY: dl-video
+
+original.webm:
+	yt-dlp \
+		--remote-components ejs:github \
+		-f $(YT_FORMAT) \
+		$(YT_URL) \
+		-o $@
+
+gen-sample: video.webm
+.PHONY: gen-sample
+
+video.webm: original.webm
+	ffmpeg -i $< -ss $(FFMPEG_START) -t $(FFMPEG_DURATION) -vf scale=$(FFMPEG_SCALE) -y $@
+
+extract-pixels: video_pixels.parquet
+.PHONY: extract-pixels
+
+video_pixels.parquet: video.webm
+	shadertoys_extract_pixels
+
+
+train-nn: nn_weights_tiny.npz
+.PHONY: train-nn
+
+nn_weights_tiny.npz: video_pixels.parquet
+	shadertoys_train_nn --epochs $(NN_EPOCHS)
+
+gen-shader: shadertoy_buffer_a.fs
+.PHONY: gen-shader
+
+shadertoy_buffer_a.fs: nn_weights_tiny.npz
+	shadertoys_generate_shaders
+
