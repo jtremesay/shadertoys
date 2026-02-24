@@ -2,11 +2,32 @@
 
 ## Project Overview
 
-Neural video compression for Shadertoy using PyTorch → GLSL code generation. Compresses Bad Apple video (1.08 GB) into a tiny neural network (~17 KB) that runs entirely in GLSL shader code, with NO custom textures (Shadertoy constraint).
+A collection of demos intended for publication on Shadertoy.com, featuring procedural generation and meta-programming techniques. The repository contains both finished demos and reusable tools in `src/shadertoys/` for building complex shaders.
 
-**Core Concept**: Train `f(frame, x, y) → pixel_value` then embed the NN weights directly in GLSL code for real-time playback.
+**Current Demos:**
+- **bad_apple**: Neural video compression - encodes Bad Apple video (1.08 GB) into a tiny neural network (~17 KB) running entirely in GLSL shader code with no custom textures
+- **doom**: Doom demo replay - recreates Doom engine logic in GLSL to playback recorded gameplay
 
-## Architecture & Data Flow
+**Core Philosophy**: Push Shadertoy constraints to their limits using procedural generation, code generation, and embedding complex data directly in shader code.
+
+## Repository Structure
+
+```
+src/shadertoys/          # Reusable tools for building Shadertoy demos
+  bin/                   # Console scripts (extract_pixels, train_nn, generate_shaders, etc.)
+  templates/             # Jinja2 templates for shader code generation
+  nn.py, video.py, etc.  # Core utilities
+bad_apple/               # Neural video compression demo
+doom/                    # Doom demo replay
+```
+
+## Bad Apple Demo
+
+### Concept
+
+Train a neural network `f(frame, x, y) → pixel_value` then embed the NN weights directly in GLSL code for real-time playback.
+
+### Architecture & Data Flow
 
 ```
 video.webm (480×360, 6572 frames)
@@ -118,6 +139,29 @@ tex_size = int(np.ceil(np.sqrt(total_weights / 4)))  # 4 weights per pixel
 - Python: `frames /= total_frames` ↔ GLSL: `float(frame) / float(TOTAL_FRAMES)`
 - Python: `pixels /= 255.0` ↔ GLSL: `sigmoid()` output already in [0, 1]
 
+## Doom Demo
+
+### Concept
+
+Recreate Doom engine logic in GLSL to replay a recorded demo file. The demo file (.lmp) contains player inputs recorded during gameplay, which are fed into a shader-based game engine implementation to reproduce the exact gameplay.
+
+### Files
+
+- `doom1.wad`: Doom game data (levels, textures, sprites)
+- `e1m1x-769.lmp`: Demo recording file (player inputs)
+- `doom.ref.glsl`: Reference GLSL implementation
+- `main.py`: Development harness (work in progress)
+
+### Approach
+
+The demo replay requires embedding game data and engine logic directly in GLSL code:
+1. Parse WAD file to extract level geometry, textures, and game data
+2. Implement Doom engine logic (movement, collision, rendering) in GLSL
+3. Read demo file inputs frame-by-frame
+4. Generate procedural textures or encode sprites from WAD data
+
+This pushes Shadertoy's limits by implementing a complete game engine in shader code.
+
 ## Project Conventions
 
 1. **Polars over Pandas**: All DataFrame operations use Polars for speed
@@ -129,13 +173,13 @@ tex_size = int(np.ceil(np.sqrt(total_weights / 4)))  # 4 weights per pixel
 
 ## Common Pitfalls
 
-❌ **Don't** manually edit generated `.fs` files (regenerate from templates)  
-❌ **Don't** forget to connect Buffer A to iChannel0 in Shadertoy Image tab  
-❌ **Don't** exceed 65K chars (monitor with `len(buffer_a) + len(image_shader)`)  
-❌ **Don't** use different normalization in Python vs GLSL (causes black screens)  
-✅ **Do** run commands from `bad_apple/` directory (or specify full paths)  
-✅ **Do** check GPU availability: `torch.cuda.is_available()` (10x speedup)  
-✅ **Do** verify metadata file exists alongside `.npz` for shader generation  
+**Don't** manually edit generated `.fs` files (regenerate from templates)  
+**Don't** forget to connect Buffer A to iChannel0 in Shadertoy Image tab  
+**Don't** exceed 65K chars (monitor with `len(buffer_a) + len(image_shader)`)  
+**Don't** use different normalization in Python vs GLSL (causes black screens)  
+**Do** run commands from `bad_apple/` directory (or specify full paths)  
+**Do** check GPU availability: `torch.cuda.is_available()` (10x speedup)  
+**Do** verify metadata file exists alongside `.npz` for shader generation  
 
 ## Quick Reference
 
