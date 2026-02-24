@@ -137,10 +137,10 @@ class TinyVideoNet(nn.Module):
 def train_model(
     model: nn.Module,
     train_loader: DataLoader,
+    output_path: Path,
     epochs: int = 10,
     lr: float = 0.001,
     device: str = "cpu",
-    checkpoint_path: Path | None = None,
     start_epoch: int = 0,
     loss_history: list[float] | None = None,
 ) -> tuple[nn.Module, list[float]]:
@@ -155,7 +155,7 @@ def train_model(
     print(f"Parameters: {model.count_parameters():,}")
     print(f"Epochs: {start_epoch + 1} → {epochs}, Learning rate: {lr}")
 
-    for epoch in range(start_epoch, epochs):
+    for epoch in tqdm(range(start_epoch, epochs), desc="Training epochs", leave=False):
         model.train()
         total_loss = 0
 
@@ -178,13 +178,23 @@ def train_model(
 
         avg_loss = total_loss / len(train_loader)
         loss_history.append(avg_loss)
-        print(f"Epoch {epoch + 1}/{epochs} - Loss: {avg_loss:.6f} - Checkpoint saved ✓")
+        tqdm.write(f"Epoch {epoch + 1}/{epochs} - Loss: {avg_loss:.6f}")
 
-        # Save checkpoint after each epoch
-        if checkpoint_path:
-            save_checkpoint(model, optimizer, epoch, loss_history, checkpoint_path)
-
+        save_checkpoint(
+            model,
+            optimizer,
+            epoch,
+            loss_history,
+            output_path.with_name(f"{output_path.stem}_checkpoint.pth"),
+        )
+        save_model(model, output_path)
     return model, loss_history
+
+
+def save_model(model: nn.Module, output_path: Path):
+    """Save model weights and metadata."""
+    save_model_weights(model, output_path)
+    save_metadata(model, output_path.with_name(f"{output_path.stem}_metadata.json"))
 
 
 def save_model_weights(model: nn.Module, output_path: Path):
@@ -199,20 +209,22 @@ def save_model_weights(model: nn.Module, output_path: Path):
     with open(output_path, "w") as f:
         json.dump(weights_dict, f)
 
-    print(f"\nWeights saved to: {output_path}")
-
     # Also save as numpy for texture encoding
     numpy_path = output_path.with_suffix(".npz")
     np.savez(numpy_path, **{k: np.array(v) for k, v in weights_dict.items()})
-    print(f"Weights saved to: {numpy_path}")
-
-    # Calculate total size
-    total_params = model.count_parameters()
-    size_bytes = total_params * 4  # float32
-    print(f"Total parameters: {total_params:,}")
-    print(f"Size: {size_bytes:,} bytes = {size_bytes / 1024:.2f} KB")
 
     return weights_dict
+
+
+def save_metadata(model: nn.Module, metadata_path: Path):
+    """Save model metadata as JSON."""
+    metadata = {
+        "architecture": "TinyVideoNet",
+        "hidden_sizes": model.hidden_sizes,
+        "total_parameters": model.count_parameters(),
+    }
+    with open(metadata_path, "w") as f:
+        json.dump(metadata, f, indent=2)
 
 
 def save_checkpoint(

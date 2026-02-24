@@ -32,7 +32,6 @@
 # LIABLE FOR ANY CLAIM, DAMAGES OR OTHER LIABILITY, WHETHER IN AN ACTION OF
 # CONTRACT, TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE
 # SOFTWARE OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
-import json
 from argparse import ArgumentParser
 from collections.abc import Sequence
 from pathlib import Path
@@ -45,9 +44,7 @@ from torch.utils.data import DataLoader
 from shadertoys.nn import (
     TinyVideoNet,
     VideoDataset,
-    evaluate_model,
     load_checkpoint,
-    save_model_weights,
     train_model,
 )
 
@@ -102,87 +99,39 @@ def main(argv: Optional[Sequence[str]] = None):
     device = "cuda" if torch.cuda.is_available() else "cpu"
     print(f"Device: {device}")
 
-    # Focus on Tiny architecture for Shadertoy (no custom textures)
-    # Optimized for best quality within code size constraints
-    architectures = [
-        {
-            "name": "Tiny",
-            "hidden": [32, 64, 32],
-            "sample_rate": 1,  # 5% of data for better quality
-            "batch_size": 8192,
-        },
-    ]
+    # Create dataset (sample for faster training)
+    dataset = VideoDataset(df, width, height, total_frames, sample_rate=1)
+    dataloader = DataLoader(dataset, batch_size=8192, shuffle=True, num_workers=0)
 
-    for config in architectures:
-        print(f"\n{'=' * 80}")
-        print(f"Training {config['name']} Network: {config['hidden']}")
-        print(f"{'=' * 80}")
+    # Create model
+    model = TinyVideoNet()
 
-        # Create dataset (sample for faster training)
-        dataset = VideoDataset(
-            df, width, height, total_frames, sample_rate=config["sample_rate"]
+    # Checkpoint path (for saving during training)
+    checkpoint_path = args.output.parent / f"{args.output.stem}_checkpoint.pth"
+
+    # Load checkpoint if exists and not restarting
+    start_epoch = 0
+    loss_history = []
+    if checkpoint_path.exists() and not args.restart:
+        print(f"Found checkpoint: {checkpoint_path.name}")
+        optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
+        start_epoch, loss_history = load_checkpoint(
+            checkpoint_path, model, optimizer, device
         )
-        dataloader = DataLoader(
-            dataset, batch_size=config["batch_size"], shuffle=True, num_workers=0
-        )
-
-        # Create model
-        model = TinyVideoNet(hidden_sizes=config["hidden"])
-
-        # Check for existing checkpoint
-        checkpoint_path = (
-            args.output.parent
-            / f"{args.output.stem}_{config['name'].lower()}_checkpoint.pth"
-        )
-        start_epoch = 0
-        loss_history = []
-
-        if checkpoint_path.exists() and not args.restart:
-            print(f"📥 Found checkpoint: {checkpoint_path.name}")
-            optimizer = torch.optim.Adam(model.parameters(), lr=0.001)
-            start_epoch, loss_history = load_checkpoint(
-                checkpoint_path, model, optimizer, device
-            )
-            print(f"🔄 Resuming from epoch {start_epoch + 1}")
+        print(f"Resuming from epoch {start_epoch + 1}")
+    else:
+        if args.restart and checkpoint_path.exists():
+            print("Restarting training from scratch (--restart flag)")
         else:
-            if args.restart and checkpoint_path.exists():
-                print("🔥 Restarting training from scratch (--restart flag)")
-            else:
-                print("✨ Starting new training")
+            print("Starting new training")
 
-        # Train
-        model, loss_history = train_model(
-            model,
-            dataloader,
-            epochs=args.epochs,
-            lr=0.001,
-            device=device,
-            checkpoint_path=checkpoint_path,
-            start_epoch=start_epoch,
-            loss_history=loss_history,
-        )
-
-        # Evaluate
-        evaluate_model(model, df, width, height, total_frames, device=device)
-
-        # Save weights
-        output_path = args.output.with_name(
-            f"{args.output.stem}_{config['name'].lower()}{args.output.suffix}"
-        )
-        weights = save_model_weights(model, output_path)
-
-        # Save model metadata
-        metadata = {
-            "architecture": config["name"],
-            "hidden_sizes": config["hidden"],
-            "total_parameters": model.count_parameters(),
-            "width": width,
-            "height": height,
-            "total_frames": total_frames,
-        }
-        metadata_path = output_path.with_name(
-            f"{args.output.stem}_{config['name'].lower()}_metadata{args.output.suffix}"
-        )
-        with open(metadata_path, "w") as f:
-            json.dump(metadata, f, indent=2)
-        print(f"Metadata saved to: {metadata_path}")
+    model, loss_history = train_model(
+        model,
+        dataloader,
+        output_path=args.output,
+        epochs=args.epochs,
+        lr=0.001,
+        device=device,
+        start_epoch=start_epoch,
+        loss_history=loss_history,
+    )
