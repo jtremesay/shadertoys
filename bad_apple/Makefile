@@ -38,7 +38,7 @@ YT_FORMAT = 243
 FFMPEG_SCALE = 60:40
 FFMPEG_START = 0:00:00
 FFMPEG_DURATION = 14
-NN_EPOCHS = 1_000
+NN_EPOCHS = 10_000
 
 all: gen-shader
 .PHONY: all
@@ -66,15 +66,17 @@ video_pixels.parquet: video.webm
 	shadertoys_extract_pixels
 
 
-train-nn: nn_weights_tiny.npz
+train-nn: nn_weights.npz
+	shadertoys_train_nn --epochs $(NN_EPOCHS)
+	
 .PHONY: train-nn
 
-nn_weights_tiny.npz: video_pixels.parquet
-	shadertoys_train_nn --epochs $(NN_EPOCHS)
+nn_weights.npz: video_pixels.parquet
+	$(MAKE) -C $(@D) train-nn
 
 gen-shader: shadertoy_buffer_a.fs
 .PHONY: gen-shader
 
-shadertoy_buffer_a.fs: nn_weights_tiny.npz
+shadertoy_buffer_a.fs: nn_weights.npz
 	shadertoys_generate_shaders
 
