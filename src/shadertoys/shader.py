@@ -36,7 +36,10 @@ import json
 from pathlib import Path
 
 import numpy as np
+import torch
 from jinja2 import Environment, PackageLoader
+
+from shadertoys.nn import TinyVideoNet
 
 env = Environment(loader=PackageLoader("shadertoys"))
 
@@ -46,6 +49,47 @@ def load_weights(weights_path):
     data = np.load(weights_path)
     weights = {key: data[key] for key in data.files}
     return weights
+
+
+def reconstruct_model(weights_path: Path) -> tuple[TinyVideoNet, dict]:
+    """Reconstruct PyTorch model from saved weights.
+
+    Args:
+        weights_path: Path to .npz weights file
+
+    Returns:
+        Tuple of (model, metadata) where model is ready for inference
+    """
+    # Load metadata
+    metadata_path = weights_path.with_name(weights_path.stem + "_metadata.json")
+    try:
+        with open(metadata_path, "r") as f:
+            metadata = json.load(f)
+    except FileNotFoundError:
+        raise FileNotFoundError(
+            f"Metadata file not found: {metadata_path}. "
+            "Make sure the model was trained with this version."
+        )
+
+    # Extract architecture info
+    hidden_sizes = metadata.get("hidden_sizes", [32, 64, 32])
+
+    # Create model with same architecture
+    model = TinyVideoNet(hidden_sizes=hidden_sizes)
+
+    # Load weights from npz
+    weights_dict = load_weights(weights_path)
+
+    # Convert numpy arrays to torch tensors and build state dict
+    state_dict = {}
+    for key, value in weights_dict.items():
+        state_dict[key] = torch.from_numpy(value)
+
+    # Load state dict into model
+    model.load_state_dict(state_dict)
+    model.eval()  # Set to evaluation mode
+
+    return model, metadata
 
 
 def generate_buffer_a(weights_dict, metadata):

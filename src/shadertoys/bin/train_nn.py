@@ -134,4 +134,7 @@ def main(argv: Optional[Sequence[str]] = None):
         device=device,
         start_epoch=start_epoch,
         loss_history=loss_history,
+        width=width,
+        height=height,
+        total_frames=total_frames,
     )

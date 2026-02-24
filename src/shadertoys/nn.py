@@ -143,6 +143,9 @@ def train_model(
     device: str = "cpu",
     start_epoch: int = 0,
     loss_history: list[float] | None = None,
+    width: int | None = None,
+    height: int | None = None,
+    total_frames: int | None = None,
 ) -> tuple[nn.Module, list[float]]:
     model = model.to(device)
     criterion = nn.MSELoss()
@@ -187,14 +190,32 @@ def train_model(
             loss_history,
             output_path.with_name(f"{output_path.stem}_checkpoint.pth"),
         )
-        save_model(model, output_path)
+        save_model(
+            model,
+            output_path,
+            width=width,
+            height=height,
+            total_frames=total_frames,
+        )
     return model, loss_history
 
 
-def save_model(model: nn.Module, output_path: Path):
+def save_model(
+    model: nn.Module,
+    output_path: Path,
+    width: int | None = None,
+    height: int | None = None,
+    total_frames: int | None = None,
+):
     """Save model weights and metadata."""
     save_model_weights(model, output_path)
-    save_metadata(model, output_path.with_name(f"{output_path.stem}_metadata.json"))
+    save_metadata(
+        model,
+        output_path.with_name(f"{output_path.stem}_metadata.json"),
+        width=width,
+        height=height,
+        total_frames=total_frames,
+    )
 
 
 def save_model_weights(model: nn.Module, output_path: Path):
@@ -216,13 +237,28 @@ def save_model_weights(model: nn.Module, output_path: Path):
     return weights_dict
 
 
-def save_metadata(model: nn.Module, metadata_path: Path):
+def save_metadata(
+    model: nn.Module,
+    metadata_path: Path,
+    width: int | None = None,
+    height: int | None = None,
+    total_frames: int | None = None,
+):
     """Save model metadata as JSON."""
     metadata = {
         "architecture": "TinyVideoNet",
         "hidden_sizes": model.hidden_sizes,
         "total_parameters": model.count_parameters(),
     }
+
+    # Add video dimensions if provided
+    if width is not None:
+        metadata["video_width"] = width
+    if height is not None:
+        metadata["video_height"] = height
+    if total_frames is not None:
+        metadata["total_frames"] = total_frames
+
     with open(metadata_path, "w") as f:
         json.dump(metadata, f, indent=2)
 
