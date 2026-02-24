@@ -13,9 +13,7 @@ wheels/
 original.webm
 video.webm
 video_pixels.parquet
-nn_weights_*_metadata.json
-nn_weights_*.json
-nn_weights_*.npz
+nn_weights_*
 shadertoy_buffer_a.fs
 shadertoy_image.fs
 
