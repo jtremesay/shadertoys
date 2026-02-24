@@ -67,12 +67,10 @@ video_pixels.parquet: video.webm
 
 
 train-nn: nn_weights.npz
-	shadertoys_train_nn --epochs $(NN_EPOCHS)
-	
 .PHONY: train-nn
 
 nn_weights.npz: video_pixels.parquet
-	$(MAKE) -C $(@D) train-nn
+	shadertoys_train_nn --epochs $(NN_EPOCHS)
 
 gen-shader: shadertoy_buffer_a.fs
 .PHONY: gen-shader
