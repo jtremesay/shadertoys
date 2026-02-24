@@ -1,6 +1,11 @@
+from pathlib import Path
+
 from py2glsl import ShaderContext
 from py2glsl.builtins import sin, vec4
 from py2glsl.render import animate
+
+wad_path = Path() / "doom1.wad"
+demo_path = Path() / "e1m1x-769.lmp"
 
 
 def shader(ctx: ShaderContext) -> vec4:

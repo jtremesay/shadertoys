@@ -46,7 +46,7 @@ def main(argv: Optional[Sequence[str]] = None):
         "-i",
         "--input",
         type=Path,
-        default="nn_weights_tiny.npz",
+        default="nn_weights.npz",
         help="Path to the input NPZ file.",
     )
     parser.add_argument(

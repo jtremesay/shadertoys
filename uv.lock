@@ -614,6 +614,15 @@ wheels = [
 ]
 
 [[package]]
+name = "omgifol"
+version = "0.5.1"
+source = { registry = "https://pypi.org/simple" }
+sdist = { url = "https://files.pythonhosted.org/packages/e0/f6/6a33c861cf943a2178a3b77ae1a6cabb72b50d46d1d8168472984e2ecda5/omgifol-0.5.1.tar.gz", hash = "sha256:6674596a489822fdf9fc32a868446bb14d813f0d3a2a8c4edf7dc6ef730a28d9", size = 39784, upload-time = "2023-05-23T23:47:38.21Z" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/26/9f/185bb11c159fd159bad7e712adb689933947df946c0cdae92253937b85ed/omgifol-0.5.1-py3-none-any.whl", hash = "sha256:fac4a42fbeacafca642cad9f14e03e2c01c72d7a7464e269f0dbdc40fb675b3a", size = 45124, upload-time = "2023-05-23T23:47:36.421Z" },
+]
+
+[[package]]
 name = "openai"
 version = "2.23.0"
 source = { registry = "https://pypi.org/simple" }
@@ -898,6 +907,7 @@ source = { editable = "." }
 dependencies = [
     { name = "jinja2" },
     { name = "numpy" },
+    { name = "omgifol" },
     { name = "opencv-python-headless" },
     { name = "pillow" },
     { name = "polars" },
@@ -910,6 +920,7 @@ dependencies = [
 requires-dist = [
     { name = "jinja2", specifier = ">=3.1.6" },
     { name = "numpy", specifier = ">=2.0.0" },
+    { name = "omgifol", specifier = ">=0.5.1" },
     { name = "opencv-python-headless", specifier = ">=4.13.0.92" },
     { name = "pillow", specifier = ">=12.1.1" },
     { name = "polars", specifier = ">=1.38.1" },
